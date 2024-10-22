@@ -42,6 +42,10 @@ func main() {
 	v1.HandleFunc("/encounter/{id}", encounterHandler.UpdateHandler).Methods("PUT")
 	v1.HandleFunc("/encounter/{id}", encounterHandler.DeleteHandler).Methods("DELETE")
 
+	//token dan Middleware
+	tokenStatisHandler := handlers.NewTokenStatisHandler()
+	v1.HandleFunc("/token-statis", tokenStatisHandler.GetTokenValue).Methods("GET")
+
 	fmt.Println("Listening on port 8080")
 	http.ListenAndServe(":8080", mux)
 }
