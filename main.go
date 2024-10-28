@@ -3,6 +3,7 @@ package main
 import (
 	"crud-repo-2/database"
 	"crud-repo-2/entity"
+	"crud-repo-2/f"
 	"crud-repo-2/handlers"
 	"fmt"
 	"log"
@@ -18,6 +19,10 @@ import (
 - Crud
 - Interface
 */
+
+const USERNAME = "root"
+const PASSWORD = "pass"
+
 func main() {
 
 	db, err := database.ConnectMysql()
@@ -45,7 +50,54 @@ func main() {
 	//token dan Middleware
 	tokenStatisHandler := handlers.NewTokenStatisHandler()
 	v1.HandleFunc("/token-statis", tokenStatisHandler.GetTokenValue).Methods("GET")
+	v1.HandleFunc("/check-role", tokenStatisHandler.GetTokenValue).Methods("GET")
 
-	fmt.Println("Listening on port 8080")
-	http.ListenAndServe(":8080", mux)
+	//middleware
+	var handler http.Handler = mux
+	handler = MiddlewareAuth(handler)
+	handler = RoleCheckMiddleware("admin", "manager")(handler)
+
+	server := new(http.Server)
+	server.Addr = ":8080"
+	server.Handler = handler
+	fmt.Println("Server is running on port 8080")
+	server.ListenAndServe()
+}
+
+func MiddlewareAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		username, password, ok := r.BasicAuth()
+
+		if !ok {
+			f.WriteToJsonError(w, r, "Something Wrong")
+			return
+		}
+		isVavlid := (username == USERNAME) && (password == PASSWORD)
+		if !isVavlid {
+			f.WriteToJsonError(w, r, "Unathorization")
+			return
+		}
+		next.ServeHTTP(w, r)
+
+	})
+}
+
+func RoleCheckMiddleware(allowedRoles ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Misalnya, role pengguna disimpan di header Authorization (hanya contoh)
+			userRole := r.Header.Get("Role")
+
+			// Memeriksa apakah role pengguna ada di daftar allowedRoles
+			for _, role := range allowedRoles {
+				if userRole == role {
+					next.ServeHTTP(w, r) // Lanjutkan ke handler berikutnya
+					return
+				}
+			}
+
+			// Jika role tidak cocok, return 403 Forbidden
+			f.WriteToJsonError(w, r, "Forbidden")
+		})
+	}
 }
