@@ -7,3 +7,7 @@ type TokenStatisResponse struct {
 type TokenStatisNotFoundResponse struct {
 	Message string `json:"message"`
 }
+
+type TokenJWTResponse struct {
+	Token string `json:"token"`
+}

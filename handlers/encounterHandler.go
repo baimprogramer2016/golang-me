@@ -57,9 +57,8 @@ func (h *encounterHandler) GetByIdHandler(w http.ResponseWriter, r *http.Request
 	f.WriteToJson(w, r, encounter)
 }
 
-var validate *validator.Validate
-
 func (h *encounterHandler) CreateHandler(w http.ResponseWriter, r *http.Request) {
+	var validate *validator.Validate
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -102,6 +101,7 @@ func (h *encounterHandler) CreateHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *encounterHandler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
+	var validate *validator.Validate
 	if r.Method != http.MethodPut {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return

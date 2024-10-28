@@ -5,6 +5,7 @@ import (
 	"crud-repo-2/entity"
 	"crud-repo-2/f"
 	"crud-repo-2/handlers"
+	"crud-repo-2/middleware"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,9 +20,6 @@ import (
 - Crud
 - Interface
 */
-
-const USERNAME = "root"
-const PASSWORD = "pass"
 
 func main() {
 
@@ -52,10 +50,15 @@ func main() {
 	v1.HandleFunc("/token-statis", tokenStatisHandler.GetTokenValue).Methods("GET")
 	v1.HandleFunc("/check-role", tokenStatisHandler.GetTokenValue).Methods("GET")
 
+	loginHandler := handlers.NewTokenJwtHandler()
+	v1.HandleFunc("/login", loginHandler.LoginHandler).Methods("POST")
+	v1.HandleFunc("/protected", ProtectedHandler).Methods("GET")
+
 	//middleware
 	var handler http.Handler = mux
-	handler = MiddlewareAuth(handler)
-	handler = RoleCheckMiddleware("admin", "manager")(handler)
+	// handler = middleware.MiddlewareAuth(handler)
+	handler = middleware.CheckJWTToken(handler)
+	handler = middleware.RoleCheckMiddleware("admin", "manager")(handler)
 
 	server := new(http.Server)
 	server.Addr = ":8080"
@@ -64,40 +67,8 @@ func main() {
 	server.ListenAndServe()
 }
 
-func MiddlewareAuth(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		username, password, ok := r.BasicAuth()
+func ProtectedHandler(w http.ResponseWriter, r *http.Request) {
 
-		if !ok {
-			f.WriteToJsonError(w, r, "Something Wrong")
-			return
-		}
-		isVavlid := (username == USERNAME) && (password == PASSWORD)
-		if !isVavlid {
-			f.WriteToJsonError(w, r, "Unathorization")
-			return
-		}
-		next.ServeHTTP(w, r)
+	f.WriteToJson(w, r, "Welcome")
 
-	})
-}
-
-func RoleCheckMiddleware(allowedRoles ...string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Misalnya, role pengguna disimpan di header Authorization (hanya contoh)
-			userRole := r.Header.Get("Role")
-
-			// Memeriksa apakah role pengguna ada di daftar allowedRoles
-			for _, role := range allowedRoles {
-				if userRole == role {
-					next.ServeHTTP(w, r) // Lanjutkan ke handler berikutnya
-					return
-				}
-			}
-
-			// Jika role tidak cocok, return 403 Forbidden
-			f.WriteToJsonError(w, r, "Forbidden")
-		})
-	}
 }
